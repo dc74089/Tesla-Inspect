@@ -27,6 +27,7 @@ import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.TextView;
 
+import java.util.TimerTask;
 import java.util.regex.Pattern;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener, DeviceNameReceiver.OnDeviceNameReceivedListener {
@@ -35,12 +36,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         wifiConnected, passFail;
     FrameLayout isRC, isDS, isCC;
     ActionBar ab;
-    int rcid = 1001, dsid = 1002, ccid = 1003;
+    final int rcid = 1001, dsid = 1002, ccid = 1003;
     String rcApp = "com.qualcomm.ftcrobotcontroller", dsApp = "com.qualcomm.ftcdriverstation",
             ccApp = "com.zte.wifichanneleditor", widiNameString = "";
     DeviceNameReceiver mDeviceNameReceiver;
     Pattern osRegex1, osRegex2, teamNoRegex;
     Handler handler;
+    Runnable refreshRunnable;
+    TimerTask task;
+    IntentFilter filter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,6 +52,23 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         setContentView(R.layout.activity_main);
 
         ab = getSupportActionBar();
+
+        refreshRunnable =  new Runnable() {
+            @Override
+            public void run() {
+                refresh();
+                handler.postDelayed(getRefreshRunnable(), 1000);
+                Log.d("Handler", "Boop.");
+            }
+        };
+
+        task = new TimerTask() {
+            @Override
+            public void run() {
+                refresh();
+                Log.d("TimerTask", "Boop.");
+            }
+        };
 
         isRC = (FrameLayout) findViewById(R.id.isRCInstalled);
         isDS = (FrameLayout) findViewById(R.id.isDSInstalled);
@@ -67,10 +88,29 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         osRegex2 = Pattern.compile("4\\.4\\.\\d");
         teamNoRegex = Pattern.compile("\\d{1,5}-\\w+");
 
+        initReciever();
+        startReceivingWidiInfo();
+
+
         handler = new Handler();
         handler.postDelayed(getRefreshRunnable(), 1000);
 
+
+        //new Timer().scheduleAtFixedRate(task, 0, 1000);
+
         refresh();
+    }
+
+    @Override
+    protected void onPause() {
+        unregisterReceiver(mDeviceNameReceiver);
+        super.onPause();
+    }
+
+    @Override
+    protected void onResume() {
+        startReceivingWidiInfo();
+        super.onResume();
     }
 
     private Boolean validateInputs() {
@@ -78,6 +118,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         if(!getAirplaneMode()) return false;
         if(getBluetooth()) return false;
         if(!getWiFiEnabled()) return false;
+        if(getWifiConnected()) return false;
         if(!validateDeviceName()) return false;
         if(!packageExists(ccApp)) return false;
         if(!packageExists(dsApp) && !packageExists(rcApp)) return false;
@@ -123,8 +164,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         } else {
             isCC.addView(buildButton(ccid));
         }
-
-        getWidiInfo();
 
         getBatteryInfo();
 
@@ -183,10 +222,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         return new WifiP2pDevice().status == WifiP2pDevice.CONNECTED;
     }
 
-    private void getWidiInfo() {
+    private void initReciever() {
         mDeviceNameReceiver = new DeviceNameReceiver();
         mDeviceNameReceiver.setOnDeviceNameReceivedListener(this);
-        IntentFilter filter = new IntentFilter(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION );
+        filter = new IntentFilter(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION );
+    }
+
+    private void startReceivingWidiInfo() {
         registerReceiver(mDeviceNameReceiver, filter);
     }
 
@@ -203,14 +245,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     private Runnable getRefreshRunnable() {
-        return new Runnable() {
-            @Override
-            public void run() {
-                refresh();
-                handler.postDelayed(getRefreshRunnable(), 1000);
-                Log.d("Handler", "Boop.");
-            }
-        };
+        return refreshRunnable;
     }
 
     public boolean packageExists (String targetPackage){
