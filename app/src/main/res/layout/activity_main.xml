@@ -207,7 +207,7 @@
             android:layout_height="wrap_content"
             android:textAppearance="?android:attr/textAppearanceLarge"
             android:text="Apps Installed:"
-            android:id="@+id/textView2"
+            android:id="@+id/appsInstalled"
             android:layout_weight="1" />
 
         <TextView

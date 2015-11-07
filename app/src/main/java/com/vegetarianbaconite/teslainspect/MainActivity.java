@@ -33,7 +33,7 @@ import java.util.regex.Pattern;
 public class MainActivity extends AppCompatActivity implements View.OnClickListener, DeviceNameReceiver.OnDeviceNameReceivedListener {
 
     TextView widiName, widiConnected, wifiEnabled, batteryLevel, osVersion, airplaneMode, bluetooth,
-        wifiConnected, passFail;
+        wifiConnected, passFail, appsInstalled;
     FrameLayout isRC, isDS, isCC;
     ActionBar ab;
     final int rcid = 1001, dsid = 1002, ccid = 1003;
@@ -52,6 +52,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         setContentView(R.layout.activity_main);
 
         ab = getSupportActionBar();
+        ab.setTitle("Tesla Inspect: " + BuildConfig.VERSION_NAME);
 
         refreshRunnable =  new Runnable() {
             @Override
@@ -83,6 +84,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         bluetooth = (TextView) findViewById(R.id.bluetoothEnabled);
         wifiConnected = (TextView) findViewById(R.id.wifiConnected);
         passFail = (TextView) findViewById(R.id.passFail);
+        appsInstalled = (TextView) findViewById(R.id.appsInstalled);
 
         osRegex1 = Pattern.compile("4\\.2\\.\\d");
         osRegex2 = Pattern.compile("4\\.4\\.\\d");
@@ -120,9 +122,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         if(!getWiFiEnabled()) return false;
         if(getWifiConnected()) return false;
         if(!validateDeviceName()) return false;
-        if(!packageExists(ccApp)) return false;
-        if(!packageExists(dsApp) && !packageExists(rcApp)) return false;
-
+        if(!validateAppsInstalled()) return false;
         return true;
     }
 
@@ -142,6 +142,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         osVersion.setTextColor(validateVersion() ? Color.GREEN : Color.RED);
         widiName.setTextColor(validateDeviceName() ? Color.GREEN : Color.RED);
         wifiConnected.setTextColor(!getWifiConnected() ? Color.GREEN : Color.RED);
+        appsInstalled.setTextColor(validateAppsInstalled() ? Color.GREEN : Color.RED);
 
         isRC.removeAllViews();
         isDS.removeAllViews();
@@ -232,6 +233,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         registerReceiver(mDeviceNameReceiver, filter);
     }
 
+    private Boolean validateAppsInstalled() {
+        if(!packageExists(ccApp)) return false;
+        if(!packageExists(dsApp) && !packageExists(rcApp)) return false;
+        return true;
+    }
+
     private void getBatteryInfo() {
         IntentFilter ifilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
         Intent batteryStatus = registerReceiver(null, ifilter);
@@ -295,10 +302,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         if (id == ccid) {
             startStore(ccApp);
-        }
-
-        if (id == R.id.refresh) {
-            refresh();
         }
     }
 }
