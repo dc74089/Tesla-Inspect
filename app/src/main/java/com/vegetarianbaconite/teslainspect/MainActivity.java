@@ -33,7 +33,7 @@ import java.util.regex.Pattern;
 public class MainActivity extends AppCompatActivity implements View.OnClickListener, DeviceNameReceiver.OnDeviceNameReceivedListener {
 
     TextView widiName, widiConnected, wifiEnabled, batteryLevel, osVersion, airplaneMode, bluetooth,
-        wifiConnected, passFail, appsInstalled;
+        wifiConnected, passFail, appsStatus;
     FrameLayout isRC, isDS, isCC;
     ActionBar ab;
     final int rcid = 1001, dsid = 1002, ccid = 1003;
@@ -84,7 +84,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         bluetooth = (TextView) findViewById(R.id.bluetoothEnabled);
         wifiConnected = (TextView) findViewById(R.id.wifiConnected);
         passFail = (TextView) findViewById(R.id.passFail);
-        appsInstalled = (TextView) findViewById(R.id.appsInstalled);
+        appsStatus = (TextView) findViewById(R.id.appsStatus);
 
         osRegex1 = Pattern.compile("4\\.2\\.\\d");
         osRegex2 = Pattern.compile("4\\.4\\.\\d");
@@ -134,6 +134,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         bluetooth.setText(getBluetooth() ? "On" : "Off");
         wifiConnected.setText(getWifiConnected() ? "Yes" : "No");
         widiName.setText(widiNameString);
+        appsStatus.setText(validateAppsInstalled() ? "\u2713" : "X");
 
         widiConnected.setTextColor(getWiDiConnected() ? Color.GREEN : Color.RED);
         wifiEnabled.setTextColor(getWiFiEnabled() ? Color.GREEN : Color.RED);
@@ -142,7 +143,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         osVersion.setTextColor(validateVersion() ? Color.GREEN : Color.RED);
         widiName.setTextColor(validateDeviceName() ? Color.GREEN : Color.RED);
         wifiConnected.setTextColor(!getWifiConnected() ? Color.GREEN : Color.RED);
-        appsInstalled.setTextColor(validateAppsInstalled() ? Color.GREEN : Color.RED);
+        appsStatus.setTextColor(validateAppsInstalled() ? Color.GREEN : Color.RED);
 
         isRC.removeAllViews();
         isDS.removeAllViews();
