@@ -147,7 +147,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         WifiManager m = (WifiManager) getSystemService(WIFI_SERVICE);
         SupplicantState s = m.getConnectionInfo().getSupplicantState();
         NetworkInfo.DetailedState state = WifiInfo.getDetailedStateOf(s);
-        Log.d("getWifiConnected", state.toString());
+        Log.v("getWifiConnected", state.toString());
 
         return(state == NetworkInfo.DetailedState.CONNECTED ||
                 state == NetworkInfo.DetailedState.OBTAINING_IPADDR);
@@ -208,6 +208,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             public void run() {
                 refresh();
                 handler.postDelayed(getRefreshRunnable(), 1000);
+                Log.d("Handler", "Boop.");
             }
         };
     }
