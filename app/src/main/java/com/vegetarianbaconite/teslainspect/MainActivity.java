@@ -88,7 +88,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         osRegex1 = Pattern.compile("4\\.2\\.\\d");
         osRegex2 = Pattern.compile("4\\.4\\.\\d");
-        teamNoRegex = Pattern.compile("\\d{1,5}-\\w+");
+        teamNoRegex = Pattern.compile("^\\d{1,5}(-\\w)?-(RC|DS)\\z");
 
         initReciever();
         startReceivingWidiInfo();
