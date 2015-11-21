@@ -40,7 +40,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     String rcApp = "com.qualcomm.ftcrobotcontroller", dsApp = "com.qualcomm.ftcdriverstation",
             ccApp = "com.zte.wifichanneleditor", widiNameString = "";
     DeviceNameReceiver mDeviceNameReceiver;
-    Pattern osRegex1, osRegex2, teamNoRegex;
+    Pattern osRegex1, osRegex2, teamNoRegex, rcRegex, dsRegex;
     Handler handler;
     Runnable refreshRunnable;
     TimerTask task;
@@ -89,6 +89,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         osRegex1 = Pattern.compile("4\\.2\\.\\d");
         osRegex2 = Pattern.compile("4\\.4\\.\\d");
         teamNoRegex = Pattern.compile("^\\d{1,5}(-\\w)?-(RC|DS)\\z");
+        rcRegex = Pattern.compile("RC");
+        dsRegex = Pattern.compile("DS");
 
         initReciever();
         startReceivingWidiInfo();
@@ -116,6 +118,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     private Boolean validateInputs() {
+        phoneIsDS();
         if(!validateVersion()) return false;
         if(!getAirplaneMode()) return false;
         if(getBluetooth()) return false;
@@ -149,22 +152,32 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         isDS.removeAllViews();
         isCC.removeAllViews();
 
-        if(packageExists(rcApp)) {
-            isRC.addView(getTV(true));
-        } else {
-            isRC.addView(getTV(false));
-        }
-
-        if(packageExists(dsApp)) {
-            isDS.addView(getTV(true));
-        } else {
-            isDS.addView(buildButton(dsid));
-        }
-
         if(packageExists(ccApp)) {
             isCC.addView(getTV(true));
         } else {
             isCC.addView(buildButton(ccid));
+        }
+
+        if(!(phoneIsDS() == null)) {
+            if(!phoneIsDS()) {
+                if (packageExists(rcApp)) {
+                    isRC.addView(getTV(true));
+                } else {
+                    isRC.addView(getTV(false));
+                }
+            } else {
+                isRC.addView(getNotApplicableTV());
+            }
+
+            if(phoneIsDS()) {
+                if (packageExists(dsApp)) {
+                    isDS.addView(getTV(true));
+                } else {
+                    isDS.addView(buildButton(dsid));
+                }
+            } else {
+                isDS.addView(getNotApplicableTV());
+            }
         }
 
         getBatteryInfo();
@@ -236,8 +249,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private Boolean validateAppsInstalled() {
         if(!packageExists(ccApp)) return false;
-        if(!packageExists(dsApp) && !packageExists(rcApp)) return false;
-        return true;
+        if(phoneIsDS() == null) return false;
+
+        if(phoneIsDS()) {
+            return packageExists(dsApp);
+        } else {
+            return packageExists(rcApp);
+        }
     }
 
     private void getBatteryInfo() {
@@ -256,6 +274,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         return refreshRunnable;
     }
 
+    private Boolean phoneIsDS() {
+        if(dsRegex.matcher(widiNameString).find())
+            return true;
+        if(rcRegex.matcher(widiNameString).find())
+            return false;
+        return null;
+    }
+
     public boolean packageExists (String targetPackage){
         PackageManager pm = getPackageManager();
         try {
@@ -271,6 +297,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         tv.setText(installed ? "\u2713" : "X");
         tv.setTextColor(installed ? Color.GREEN : Color.RED);
+
+        return tv;
+    }
+
+    private TextView getNotApplicableTV () {
+        TextView tv = new TextView(this);
+
+        tv.setText("N/A");
 
         return tv;
     }
