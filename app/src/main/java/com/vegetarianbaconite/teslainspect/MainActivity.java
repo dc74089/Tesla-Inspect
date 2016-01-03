@@ -4,7 +4,6 @@ import android.bluetooth.BluetoothAdapter;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.net.NetworkInfo;
@@ -36,7 +35,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         wifiConnected, passFail, appsStatus;
     FrameLayout isRC, isDS, isCC;
     ActionBar ab;
-    final int rcid = 1001, dsid = 1002, ccid = 1003;
+    final int dsid = 9277, ccid = 10650;
     String rcApp = "com.qualcomm.ftcrobotcontroller", dsApp = "com.qualcomm.ftcdriverstation",
             ccApp = "com.zte.wifichanneleditor", widiNameString = "";
     DeviceNameReceiver mDeviceNameReceiver;
@@ -125,8 +124,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         if(!getWiFiEnabled()) return false;
         if(getWifiConnected()) return false;
         if(!validateDeviceName()) return false;
-        if(!validateAppsInstalled()) return false;
-        return true;
+        return validateAppsInstalled();
     }
 
     private void refresh() {
@@ -184,6 +182,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         passFail.setText(validateInputs() ? "Pass" : "Fail");
         passFail.setTextColor(validateInputs() ? Color.GREEN : Color.RED);
+    }
+
+    public void explainErrors() {
+
     }
 
     @Override
@@ -285,7 +287,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public boolean packageExists (String targetPackage){
         PackageManager pm = getPackageManager();
         try {
-            PackageInfo info = pm.getPackageInfo(targetPackage,PackageManager.GET_META_DATA);
+            pm.getPackageInfo(targetPackage, PackageManager.GET_META_DATA);
         } catch (PackageManager.NameNotFoundException e) {
             return false;
         }

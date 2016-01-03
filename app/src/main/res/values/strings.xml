@@ -1,3 +1,11 @@
 <resources>
     <string name="app_name">Tesla Inspect</string>
+    <string name="OSerror">\u2022Your operating system is the wrong version. Are you using an approved phone?</string>
+    <string name="airplaneError">Turn on airplane mode in settings.</string>
+    <string name="bluetoothError">Disable Bluetooth in settings</string>
+    <string name="wifiEnabledError">Turn on WiFi in Settings</string>
+    <string name="wifiConnectedError">Disconnect from the WiFi network you\'re connected to</string>
+    <string name="widiNameError">Make sure your WiFi Direct name is in the form ####-DS or ####-RC (for example, 9277-RC or 10650-DS)</string>
+    <string name="appsError">Install all required apps. The Driver Station and Channel Changer can be installed from the Play Store. The Robot Controller app is installed from your programming computer.
+        If you program in AppInventor, this app might show that you don\'t have the Robot Controller app installed when you actually do. If so, ignore this warning. </string>
 </resources>
