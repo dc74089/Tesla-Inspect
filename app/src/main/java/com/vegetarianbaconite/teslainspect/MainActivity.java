@@ -194,12 +194,20 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         refresh();
     }
 
-    private Boolean getAirplaneMode() {
+    public Boolean getAirplaneMode() {
         return Settings.Global.getInt(getContentResolver(),
                 Settings.Global.AIRPLANE_MODE_ON, 0) != 0;
     }
 
-    private Boolean getWifiConnected() {
+    public void setAirplaneMode() {
+        try {
+            startActivity(new Intent(Settings.ACTION_AIRPLANE_MODE_SETTINGS));
+        } catch (Exception e) {
+
+        }
+    }
+
+    public Boolean getWifiConnected() {
         WifiManager m = (WifiManager) getSystemService(WIFI_SERVICE);
         SupplicantState s = m.getConnectionInfo().getSupplicantState();
         NetworkInfo.DetailedState state = WifiInfo.getDetailedStateOf(s);
@@ -209,7 +217,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 state == NetworkInfo.DetailedState.OBTAINING_IPADDR);
     }
 
-    private Boolean getBluetooth() {
+    public void setWifiConnected() {
+        WifiManager wifi = (WifiManager) getSystemService(Context.WIFI_SERVICE);
+        wifi.disconnect();
+    }
+
+    public Boolean getBluetooth() {
         BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         if (mBluetoothAdapter == null) {
             return false;
@@ -222,20 +235,32 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         return true;
     }
 
-    private Boolean validateVersion() {
+    public void setBluetooth() {
+        BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        if (mBluetoothAdapter.isEnabled()) {
+            mBluetoothAdapter.disable();
+        }
+    }
+
+    public Boolean validateVersion() {
         return(osRegex2.matcher(Build.VERSION.RELEASE).find() || osRegex1.matcher(Build.VERSION.RELEASE).find());
     }
 
-    private Boolean validateDeviceName() {
+    public Boolean validateDeviceName() {
         return(teamNoRegex.matcher(widiNameString)).find();
     }
 
-    private Boolean getWiFiEnabled() {
+    public Boolean getWiFiEnabled() {
         WifiManager wifi = (WifiManager)getSystemService(Context.WIFI_SERVICE);
         return wifi.isWifiEnabled();
     }
 
-    private Boolean getWiDiConnected() {
+    public void setWifiEnabled() {
+        WifiManager wifiManager = (WifiManager) this.getSystemService(Context.WIFI_SERVICE);
+        wifiManager.setWifiEnabled(false);
+    }
+
+    public Boolean getWiDiConnected() {
         return new WifiP2pDevice().status == WifiP2pDevice.CONNECTED;
     }
 
@@ -249,7 +274,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         registerReceiver(mDeviceNameReceiver, filter);
     }
 
-    private Boolean validateAppsInstalled() {
+    public Boolean validateAppsInstalled() {
         if(!packageExists(ccApp)) return false;
         if(phoneIsDS() == null) return false;
 
@@ -276,7 +301,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         return refreshRunnable;
     }
 
-    private Boolean phoneIsDS() {
+    public Boolean phoneIsDS() {
         if(dsRegex.matcher(widiNameString).find())
             return true;
         if(rcRegex.matcher(widiNameString).find())

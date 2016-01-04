@@ -1,6 +1,6 @@
 <resources>
     <string name="app_name">Tesla Inspect</string>
-    <string name="OSerror">\u2022Your operating system is the wrong version. Are you using an approved phone?</string>
+    <string name="osError">\u2022Your operating system is the wrong version. Are you using an approved phone?</string>
     <string name="airplaneError">Turn on airplane mode in settings.</string>
     <string name="bluetoothError">Disable Bluetooth in settings</string>
     <string name="wifiEnabledError">Turn on WiFi in Settings</string>
