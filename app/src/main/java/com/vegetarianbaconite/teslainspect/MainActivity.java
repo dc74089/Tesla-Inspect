@@ -13,9 +13,6 @@ import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pManager;
-import android.net.wifi.p2p.WifiP2pManager.Channel;
-import android.net.wifi.p2p.WifiP2pManager.ChannelListener;
-import android.net.wifi.WifiConfiguration;
 import android.os.BatteryManager;
 import android.os.Build;
 import android.os.Bundle;
@@ -28,12 +25,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.TextView;
-import android.view.View.OnClickListener;
-import android.widget.Toast;
 
-import java.lang.reflect.Method;
-import java.util.List;
-import java.util.Collection;
 import java.util.TimerTask;
 import java.util.regex.Pattern;
 
@@ -52,8 +44,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     Runnable refreshRunnable;
     TimerTask task;
     IntentFilter filter;
-    Button wifiButton;
-    Button directButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -95,24 +85,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         passFail = (TextView) findViewById(R.id.passFail);
         appsStatus = (TextView) findViewById(R.id.appsStatus);
 
-        wifiButton = (Button) findViewById(R.id.wifiButton);
-        wifiButton.setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View arg0) {
-                deleteAllWifi();
-                Toast.makeText(getApplicationContext(), "Deleted remembered Wifi Networks!", Toast.LENGTH_SHORT).show();
-            }
-        });
-
-        directButton = (Button) findViewById(R.id.directButton);
-        directButton.setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View arg0) {
-                deletePersistentInfo();
-                Toast.makeText(getApplicationContext(), "Deleted remembered WifiDirect Connections!", Toast.LENGTH_SHORT).show();
-            }
-        });
-
         osRegex1 = Pattern.compile("4\\.2\\.\\d");
         osRegex2 = Pattern.compile("4\\.4\\.\\d");
         teamNoRegex = Pattern.compile("^\\d{1,5}(-\\w)?-(RC|DS)\\z");
@@ -152,10 +124,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         if(!getWiFiEnabled()) return false;
         if(getWifiConnected()) return false;
         if(!validateDeviceName()) return false;
-
-        // Check if name string has a carriage return or line feed
-        if (widiNameString.contains("\n") || widiNameString.contains("\r")) return false;
-
         return validateAppsInstalled();
     }
 
@@ -174,9 +142,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         airplaneMode.setTextColor(getAirplaneMode() ? Color.GREEN : Color.RED);
         bluetooth.setTextColor(!getBluetooth() ? Color.GREEN : Color.RED);
         osVersion.setTextColor(validateVersion() ? Color.GREEN : Color.RED);
-
-        widiName.setTextColor((validateDeviceName() && !(widiNameString.contains("\n") || widiNameString.contains("\r"))) ? Color.GREEN : Color.RED);
-
+        widiName.setTextColor(validateDeviceName() ? Color.GREEN : Color.RED);
         wifiConnected.setTextColor(!getWifiConnected() ? Color.GREEN : Color.RED);
         appsStatus.setTextColor(validateAppsInstalled() ? Color.GREEN : Color.RED);
 
@@ -214,13 +180,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         getBatteryInfo();
 
-        if (widiNameString.contains("\n") || widiNameString.contains("\r")) {
-            passFail.setText("FAIL - Invalid Name");
-            passFail.setTextColor(Color.RED);
-        } else {
-            passFail.setText(validateInputs() ? "Pass" : "Fail");
-            passFail.setTextColor(validateInputs() ? Color.GREEN : Color.RED);
-        }
+        passFail.setText(validateInputs() ? "Pass" : "Fail");
+        passFail.setTextColor(validateInputs() ? Color.GREEN : Color.RED);
     }
 
     public void explainErrors() {
@@ -403,40 +364,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         if (id == ccid) {
             startStore(ccApp);
-        }
-    }
-
-    private void deleteAllWifi() {
-        WifiManager mainWifiObj = (WifiManager) getSystemService(Context.WIFI_SERVICE);
-        List<WifiConfiguration> list = mainWifiObj.getConfiguredNetworks();
-        for( WifiConfiguration i : list ) {
-            mainWifiObj.removeNetwork(i.networkId);
-            mainWifiObj.saveConfiguration();
-        }
-    }
-
-    private void deletePersistentInfo() {
-        final WifiP2pManager wifiP2pManagerObj = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
-        final Context context = getApplicationContext();
-        final Channel channel = wifiP2pManagerObj.initialize(context, context.getMainLooper(), new ChannelListener() {
-                    @Override
-                    public void onChannelDisconnected() {
-                        Log.d("WIFIDIRECT", "Channel disconnected!");
-                    }
-                });
-
-        try {
-            Method[] methods = WifiP2pManager.class.getMethods();
-            for (int i = 0; i < methods.length; i++) {
-                if (methods[i].getName().equals("deletePersistentGroup")) {
-                    // Delete any persistent group
-                    for (int netid = 0; netid < 32; netid++) {
-                        methods[i].invoke(wifiP2pManagerObj, channel, netid, null);
-                    }
-                }
-            }
-        } catch(Exception e) {
-            e.printStackTrace();
         }
     }
 }
