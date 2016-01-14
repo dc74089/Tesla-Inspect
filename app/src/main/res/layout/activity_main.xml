@@ -18,20 +18,6 @@
         android:layout_marginTop="2dp"
         android:orientation="vertical">
 
-        <Button
-            android:id="@+id/refresh"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center_horizontal"
-            android:onClick="onClick"
-            android:text="Refresh" />
-        <Space
-            android:layout_width="fill_parent"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginTop="2dp"
-            android:layout_marginBottom="2dp" />
-
         <TextView
             android:id="@+id/passFail"
             android:layout_width="wrap_content"
@@ -345,52 +331,6 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:layout_marginTop="5dp"
-            android:layout_marginBottom="2dp" />
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_weight="0.1"
-            android:orientation="horizontal">
-
-            <com.vegetarianbaconite.teslainspect.AutoResizeTextView
-                android:id="@+id/textView15"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Delete Wifi/Direct Connections"
-                android:textAppearance="?android:attr/textAppearanceLarge"
-                android:maxLines="1" />
-
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="horizontal"
-            android:gravity="center">
-
-            <Button
-                android:id="@+id/wifiButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:width="64dp"
-                android:text="WIFI" />
-
-            <Button
-                android:id="@+id/directButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginLeft="20dp"
-                android:width="64dp"
-                android:text="Direct" />
-        </LinearLayout>
-
-        <Space
-            android:layout_width="fill_parent"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginTop="20dp"
             android:layout_marginBottom="2dp" />
 
         <LinearLayout

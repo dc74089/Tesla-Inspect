@@ -9,13 +9,13 @@ import android.graphics.Color;
 import android.net.NetworkInfo;
 import android.net.Uri;
 import android.net.wifi.SupplicantState;
+import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.net.wifi.p2p.WifiP2pManager.Channel;
 import android.net.wifi.p2p.WifiP2pManager.ChannelListener;
-import android.net.wifi.WifiConfiguration;
 import android.os.BatteryManager;
 import android.os.Build;
 import android.os.Bundle;
@@ -24,17 +24,17 @@ import android.provider.Settings;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.TextView;
-import android.view.View.OnClickListener;
 import android.widget.Toast;
 
 import java.lang.reflect.Method;
 import java.util.List;
-import java.util.Collection;
-import java.util.TimerTask;
 import java.util.regex.Pattern;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener, DeviceNameReceiver.OnDeviceNameReceivedListener {
@@ -50,10 +50,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     Pattern osRegex1, osRegex2, teamNoRegex, rcRegex, dsRegex;
     Handler handler;
     Runnable refreshRunnable;
-    TimerTask task;
     IntentFilter filter;
-    Button wifiButton;
-    Button directButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -72,14 +69,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
         };
 
-        task = new TimerTask() {
-            @Override
-            public void run() {
-                refresh();
-                Log.d("TimerTask", "Boop.");
-            }
-        };
-
         isRC = (FrameLayout) findViewById(R.id.isRCInstalled);
         isDS = (FrameLayout) findViewById(R.id.isDSInstalled);
         isCC = (FrameLayout) findViewById(R.id.isCCInstalled);
@@ -95,24 +84,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         passFail = (TextView) findViewById(R.id.passFail);
         appsStatus = (TextView) findViewById(R.id.appsStatus);
 
-        wifiButton = (Button) findViewById(R.id.wifiButton);
-        wifiButton.setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View arg0) {
-                deleteAllWifi();
-                Toast.makeText(getApplicationContext(), "Deleted remembered Wifi Networks!", Toast.LENGTH_SHORT).show();
-            }
-        });
-
-        directButton = (Button) findViewById(R.id.directButton);
-        directButton.setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View arg0) {
-                deletePersistentInfo();
-                Toast.makeText(getApplicationContext(), "Deleted remembered WifiDirect Connections!", Toast.LENGTH_SHORT).show();
-            }
-        });
-
         osRegex1 = Pattern.compile("4\\.2\\.\\d");
         osRegex2 = Pattern.compile("4\\.4\\.\\d");
         teamNoRegex = Pattern.compile("^\\d{1,5}(-\\w)?-(RC|DS)\\z");
@@ -126,10 +97,36 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         handler = new Handler();
         handler.postDelayed(getRefreshRunnable(), 1000);
 
-
-        //new Timer().scheduleAtFixedRate(task, 0, 1000);
-
         refresh();
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.main_menu, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int id = item.getItemId();
+
+        if (id == R.id.clear_wifi) {
+            deleteAllWifi();
+            Toast.makeText(getApplicationContext(), "Deleted remembered Wifi Networks!",
+                    Toast.LENGTH_SHORT).show();
+            return true;
+        }
+
+        if (id == R.id.clear_widi) {
+            deletePersistentInfo();
+            Toast.makeText(getApplicationContext(), "Deleted remembered WifiDirect Connections!",
+                    Toast.LENGTH_SHORT).show();
+
+            return true;
+        }
+
+        return super.onOptionsItemSelected(item);
     }
 
     @Override
@@ -153,9 +150,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         if(getWifiConnected()) return false;
         if(!validateDeviceName()) return false;
 
-        // Check if name string has a carriage return or line feed
-        if (widiNameString.contains("\n") || widiNameString.contains("\r")) return false;
-
         return validateAppsInstalled();
     }
 
@@ -175,7 +169,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         bluetooth.setTextColor(!getBluetooth() ? Color.GREEN : Color.RED);
         osVersion.setTextColor(validateVersion() ? Color.GREEN : Color.RED);
 
-        widiName.setTextColor((validateDeviceName() && !(widiNameString.contains("\n") || widiNameString.contains("\r"))) ? Color.GREEN : Color.RED);
+        widiName.setTextColor(validateDeviceName() ? Color.GREEN : Color.RED);
 
         wifiConnected.setTextColor(!getWifiConnected() ? Color.GREEN : Color.RED);
         appsStatus.setTextColor(validateAppsInstalled() ? Color.GREEN : Color.RED);
@@ -286,6 +280,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     public Boolean validateDeviceName() {
+        if (widiNameString.contains("\n") || widiNameString.contains("\r")) return false;
         return(teamNoRegex.matcher(widiNameString)).find();
     }
 

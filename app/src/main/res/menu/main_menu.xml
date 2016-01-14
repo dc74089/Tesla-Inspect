@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item
+        android:title="Clear WiFi Connections"
+        android:id="@+id/clear_wifi"
+        app:showAsAction="never"
+        android:orderInCategory="100" />
+    <item
+        android:title="Clear WiFi Direct Connections"
+        android:id="@+id/clear_widi"
+        android:orderInCategory="101"
+        app:showAsAction="never" />
+</menu>
