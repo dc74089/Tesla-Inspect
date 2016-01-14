@@ -9,10 +9,13 @@ import android.graphics.Color;
 import android.net.NetworkInfo;
 import android.net.Uri;
 import android.net.wifi.SupplicantState;
+import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pManager;
+import android.net.wifi.p2p.WifiP2pManager.Channel;
+import android.net.wifi.p2p.WifiP2pManager.ChannelListener;
 import android.os.BatteryManager;
 import android.os.Build;
 import android.os.Bundle;
@@ -21,12 +24,17 @@ import android.provider.Settings;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
-import java.util.TimerTask;
+import java.lang.reflect.Method;
+import java.util.List;
 import java.util.regex.Pattern;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener, DeviceNameReceiver.OnDeviceNameReceivedListener {
@@ -42,7 +50,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     Pattern osRegex1, osRegex2, teamNoRegex, rcRegex, dsRegex;
     Handler handler;
     Runnable refreshRunnable;
-    TimerTask task;
     IntentFilter filter;
 
     @Override
@@ -59,14 +66,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 refresh();
                 handler.postDelayed(getRefreshRunnable(), 1000);
                 Log.d("Handler", "Boop.");
-            }
-        };
-
-        task = new TimerTask() {
-            @Override
-            public void run() {
-                refresh();
-                Log.d("TimerTask", "Boop.");
             }
         };
 
@@ -98,10 +97,36 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         handler = new Handler();
         handler.postDelayed(getRefreshRunnable(), 1000);
 
-
-        //new Timer().scheduleAtFixedRate(task, 0, 1000);
-
         refresh();
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.main_menu, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int id = item.getItemId();
+
+        if (id == R.id.clear_wifi) {
+            deleteAllWifi();
+            Toast.makeText(getApplicationContext(), "Deleted remembered Wifi Networks!",
+                    Toast.LENGTH_SHORT).show();
+            return true;
+        }
+
+        if (id == R.id.clear_widi) {
+            deletePersistentInfo();
+            Toast.makeText(getApplicationContext(), "Deleted remembered WifiDirect Connections!",
+                    Toast.LENGTH_SHORT).show();
+
+            return true;
+        }
+
+        return super.onOptionsItemSelected(item);
     }
 
     @Override
@@ -124,6 +149,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         if(!getWiFiEnabled()) return false;
         if(getWifiConnected()) return false;
         if(!validateDeviceName()) return false;
+
         return validateAppsInstalled();
     }
 
@@ -142,7 +168,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         airplaneMode.setTextColor(getAirplaneMode() ? Color.GREEN : Color.RED);
         bluetooth.setTextColor(!getBluetooth() ? Color.GREEN : Color.RED);
         osVersion.setTextColor(validateVersion() ? Color.GREEN : Color.RED);
+
         widiName.setTextColor(validateDeviceName() ? Color.GREEN : Color.RED);
+
         wifiConnected.setTextColor(!getWifiConnected() ? Color.GREEN : Color.RED);
         appsStatus.setTextColor(validateAppsInstalled() ? Color.GREEN : Color.RED);
 
@@ -180,8 +208,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         getBatteryInfo();
 
-        passFail.setText(validateInputs() ? "Pass" : "Fail");
-        passFail.setTextColor(validateInputs() ? Color.GREEN : Color.RED);
+        if (widiNameString.contains("\n") || widiNameString.contains("\r")) {
+            passFail.setText("FAIL - Invalid Name");
+            passFail.setTextColor(Color.RED);
+        } else {
+            passFail.setText(validateInputs() ? "Pass" : "Fail");
+            passFail.setTextColor(validateInputs() ? Color.GREEN : Color.RED);
+        }
     }
 
     public void explainErrors() {
@@ -247,6 +280,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     public Boolean validateDeviceName() {
+        if (widiNameString.contains("\n") || widiNameString.contains("\r")) return false;
         return(teamNoRegex.matcher(widiNameString)).find();
     }
 
@@ -364,6 +398,40 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         if (id == ccid) {
             startStore(ccApp);
+        }
+    }
+
+    private void deleteAllWifi() {
+        WifiManager mainWifiObj = (WifiManager) getSystemService(Context.WIFI_SERVICE);
+        List<WifiConfiguration> list = mainWifiObj.getConfiguredNetworks();
+        for( WifiConfiguration i : list ) {
+            mainWifiObj.removeNetwork(i.networkId);
+            mainWifiObj.saveConfiguration();
+        }
+    }
+
+    private void deletePersistentInfo() {
+        final WifiP2pManager wifiP2pManagerObj = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
+        final Context context = getApplicationContext();
+        final Channel channel = wifiP2pManagerObj.initialize(context, context.getMainLooper(), new ChannelListener() {
+                    @Override
+                    public void onChannelDisconnected() {
+                        Log.d("WIFIDIRECT", "Channel disconnected!");
+                    }
+                });
+
+        try {
+            Method[] methods = WifiP2pManager.class.getMethods();
+            for (int i = 0; i < methods.length; i++) {
+                if (methods[i].getName().equals("deletePersistentGroup")) {
+                    // Delete any persistent group
+                    for (int netid = 0; netid < 32; netid++) {
+                        methods[i].invoke(wifiP2pManagerObj, channel, netid, null);
+                    }
+                }
+            }
+        } catch(Exception e) {
+            e.printStackTrace();
         }
     }
 }
