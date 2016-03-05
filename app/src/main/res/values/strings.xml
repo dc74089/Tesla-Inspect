@@ -1,11 +1,13 @@
 <resources>
     <string name="app_name">Tesla Inspect</string>
-    <string name="osError">\u2022Your operating system is the wrong version. Are you using an approved phone?</string>
-    <string name="airplaneError">Turn on airplane mode in settings.</string>
-    <string name="bluetoothError">Disable Bluetooth in settings</string>
-    <string name="wifiEnabledError">Turn on WiFi in Settings</string>
-    <string name="wifiConnectedError">Disconnect from the WiFi network you\'re connected to</string>
-    <string name="widiNameError">Make sure your WiFi Direct name is in the form ####-DS or ####-RC (for example, 9277-RC or 10650-DS)</string>
-    <string name="appsError">Install all required apps. The Driver Station and Channel Changer can be installed from the Play Store. The Robot Controller app is installed from your programming computer.
-        If you program in AppInventor, this app might show that you don\'t have the Robot Controller app installed when you actually do. If so, ignore this warning. </string>
+    <string name="verisonError">\u2022Your operating system is the wrong version. Are you using an approved phone?\n</string>
+    <string name="airplaneError">\u2022Turn on airplane mode in settings.\n</string>
+    <string name="bluetoothError">\u2022Disable Bluetooth in settings\n</string>
+    <string name="wifiEnabledError">\u2022Turn on WiFi in Settings\n</string>
+    <string name="wifiConnectedError">\u2022Disconnect from the WiFi network you\'re connected to\n</string>
+    <string name="widiNameError">\u2022Make sure your WiFi Direct name is in the form ####-DS or ####-RC (for example, 9277-RC or 10650-DS)\n</string>
+    <string name="appsError">\u2022Install all required apps. The Driver Station and Channel Changer can be installed from the Play Store. The Robot Controller app is installed from your programming computer.
+        If you program in AppInventor, this app might show that you don\'t have the Robot Controller app installed when you actually do. If so, ignore this warning.\n</string>
+    <string name="goodToGo">Everything looks good to us!\n</string>
+    <string name="fixOffer">\nWe found errors, but we can try to fix some automatically. Would you like us to try?</string>
 </resources>

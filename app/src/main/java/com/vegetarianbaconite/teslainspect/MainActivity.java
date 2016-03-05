@@ -1,9 +1,11 @@
 package com.vegetarianbaconite.teslainspect;
 
+import android.app.Dialog;
 import android.bluetooth.BluetoothAdapter;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.net.NetworkInfo;
@@ -37,10 +39,12 @@ import java.lang.reflect.Method;
 import java.util.List;
 import java.util.regex.Pattern;
 
-public class MainActivity extends AppCompatActivity implements View.OnClickListener, DeviceNameReceiver.OnDeviceNameReceivedListener {
+public class MainActivity extends AppCompatActivity implements View.OnClickListener,
+        DeviceNameReceiver.OnDeviceNameReceivedListener {
 
     TextView widiName, widiConnected, wifiEnabled, batteryLevel, osVersion, airplaneMode, bluetooth,
-        wifiConnected, passFail, appsStatus;
+            wifiConnected, passFail, appsStatus;
+    Button whatsWrong;
     FrameLayout isRC, isDS, isCC;
     ActionBar ab;
     final int dsid = 9277, ccid = 10650;
@@ -51,6 +55,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     Handler handler;
     Runnable refreshRunnable;
     IntentFilter filter;
+    Integer darkGreen = Color.rgb(47, 151, 47);
+    Integer yellow = Color.rgb(178, 178, 0);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,7 +66,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         ab = getSupportActionBar();
         ab.setTitle("Tesla Inspect: " + BuildConfig.VERSION_NAME);
 
-        refreshRunnable =  new Runnable() {
+        refreshRunnable = new Runnable() {
             @Override
             public void run() {
                 refresh();
@@ -83,6 +89,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         wifiConnected = (TextView) findViewById(R.id.wifiConnected);
         passFail = (TextView) findViewById(R.id.passFail);
         appsStatus = (TextView) findViewById(R.id.appsStatus);
+        whatsWrong = (Button) findViewById(R.id.startFixFlow);
+        whatsWrong.setOnClickListener(this);
 
         osRegex1 = Pattern.compile("4\\.2\\.\\d");
         osRegex2 = Pattern.compile("4\\.4\\.\\d");
@@ -126,6 +134,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             return true;
         }
 
+        if (id == R.id.disc_widi) {
+            //TODO: Disconnect WiDi
+        }
+
         return super.onOptionsItemSelected(item);
     }
 
@@ -143,12 +155,16 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private Boolean validateInputs() {
         phoneIsDS();
-        if(!validateVersion()) return false;
-        if(!getAirplaneMode()) return false;
-        if(getBluetooth()) return false;
-        if(!getWiFiEnabled()) return false;
-        if(getWifiConnected()) return false;
-        if(!validateDeviceName()) return false;
+        if (!validateVersion()) return false;
+        if (!getAirplaneMode()) return false;
+        if (getBluetooth()) return false;
+        if (!getWiFiEnabled()) return false;
+        if (getWifiConnected()) return false;
+        if (!validateDeviceName()) return false;
+
+        //TODO: Name mismatch validation
+        //TODO: Labview recognition
+        if (!packageExists(dsApp) && !packageExists(rcApp)) return false;
 
         return validateAppsInstalled();
     }
@@ -163,47 +179,37 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         widiName.setText(widiNameString);
         appsStatus.setText(validateAppsInstalled() ? "\u2713" : "X");
 
-        widiConnected.setTextColor(getWiDiConnected() ? Color.GREEN : Color.RED);
-        wifiEnabled.setTextColor(getWiFiEnabled() ? Color.GREEN : Color.RED);
-        airplaneMode.setTextColor(getAirplaneMode() ? Color.GREEN : Color.RED);
-        bluetooth.setTextColor(!getBluetooth() ? Color.GREEN : Color.RED);
-        osVersion.setTextColor(validateVersion() ? Color.GREEN : Color.RED);
+        widiConnected.setTextColor(getWiDiConnected() ? darkGreen : Color.RED);
+        wifiEnabled.setTextColor(getWiFiEnabled() ? darkGreen : Color.RED);
+        airplaneMode.setTextColor(getAirplaneMode() ? darkGreen : Color.RED);
+        bluetooth.setTextColor(!getBluetooth() ? darkGreen : Color.RED);
+        osVersion.setTextColor(validateVersion() ? darkGreen : Color.RED);
 
-        widiName.setTextColor(validateDeviceName() ? Color.GREEN : Color.RED);
+        widiName.setTextColor(validateDeviceName() ? darkGreen : Color.RED);
 
-        wifiConnected.setTextColor(!getWifiConnected() ? Color.GREEN : Color.RED);
-        appsStatus.setTextColor(validateAppsInstalled() ? Color.GREEN : Color.RED);
+        wifiConnected.setTextColor(!getWifiConnected() ? darkGreen : Color.RED);
+        appsStatus.setTextColor(validateAppsInstalled() ? darkGreen : Color.RED);
 
         isRC.removeAllViews();
         isDS.removeAllViews();
         isCC.removeAllViews();
 
-        if(packageExists(ccApp)) {
-            isCC.addView(getTV(true));
+        if (packageExists(ccApp)) {
+            isCC.addView(getVersionTV(getPackageInfo(ccApp)));
         } else {
             isCC.addView(buildButton(ccid));
         }
 
-        if(!(phoneIsDS() == null)) {
-            if(!phoneIsDS()) {
-                if (packageExists(rcApp)) {
-                    isRC.addView(getTV(true));
-                } else {
-                    isRC.addView(getTV(false));
-                }
-            } else {
-                isRC.addView(getNotApplicableTV());
-            }
+        if (packageExists(rcApp)) {
+            isRC.addView(getVersionTV(getPackageInfo(rcApp)));
+        } else {
+            isRC.addView(getTV(false));
+        }
 
-            if(phoneIsDS()) {
-                if (packageExists(dsApp)) {
-                    isDS.addView(getTV(true));
-                } else {
-                    isDS.addView(buildButton(dsid));
-                }
-            } else {
-                isDS.addView(getNotApplicableTV());
-            }
+        if (packageExists(dsApp)) {
+            isDS.addView(getVersionTV(getPackageInfo(dsApp)));
+        } else {
+            isDS.addView(buildButton(dsid));
         }
 
         getBatteryInfo();
@@ -213,12 +219,24 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             passFail.setTextColor(Color.RED);
         } else {
             passFail.setText(validateInputs() ? "Pass" : "Fail");
-            passFail.setTextColor(validateInputs() ? Color.GREEN : Color.RED);
+            passFail.setTextColor(validateInputs() ? darkGreen : Color.RED);
         }
     }
 
     public void explainErrors() {
+        Dialogs d = new Dialogs(this);
 
+        if (!validateVersion()) d.addError(R.string.verisonError);
+        if (!getAirplaneMode()) d.addError(R.string.airplaneError);
+        if (getBluetooth()) d.addError(R.string.bluetoothError);
+        if (!getWiFiEnabled()) d.addError(R.string.wifiEnabledError);
+        if (getWifiConnected()) d.addError(R.string.wifiConnectedError);
+        if (!validateDeviceName()) d.addError(R.string.widiNameError);
+
+        //TODO: Installed apps error
+
+        Dialog dlg = d.build();
+        dlg.show();
     }
 
     @Override
@@ -232,27 +250,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 Settings.Global.AIRPLANE_MODE_ON, 0) != 0;
     }
 
-    public void setAirplaneMode() {
-        try {
-            startActivity(new Intent(Settings.ACTION_AIRPLANE_MODE_SETTINGS));
-        } catch (Exception e) {
-
-        }
-    }
-
     public Boolean getWifiConnected() {
         WifiManager m = (WifiManager) getSystemService(WIFI_SERVICE);
         SupplicantState s = m.getConnectionInfo().getSupplicantState();
         NetworkInfo.DetailedState state = WifiInfo.getDetailedStateOf(s);
         Log.v("getWifiConnected", state.toString());
 
-        return(state == NetworkInfo.DetailedState.CONNECTED ||
+        return (state == NetworkInfo.DetailedState.CONNECTED ||
                 state == NetworkInfo.DetailedState.OBTAINING_IPADDR);
-    }
-
-    public void setWifiConnected() {
-        WifiManager wifi = (WifiManager) getSystemService(Context.WIFI_SERVICE);
-        wifi.disconnect();
     }
 
     public Boolean getBluetooth() {
@@ -268,30 +273,18 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         return true;
     }
 
-    public void setBluetooth() {
-        BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-        if (mBluetoothAdapter.isEnabled()) {
-            mBluetoothAdapter.disable();
-        }
-    }
-
     public Boolean validateVersion() {
-        return(osRegex2.matcher(Build.VERSION.RELEASE).find() || osRegex1.matcher(Build.VERSION.RELEASE).find());
+        return (osRegex2.matcher(Build.VERSION.RELEASE).find() || osRegex1.matcher(Build.VERSION.RELEASE).find());
     }
 
     public Boolean validateDeviceName() {
         if (widiNameString.contains("\n") || widiNameString.contains("\r")) return false;
-        return(teamNoRegex.matcher(widiNameString)).find();
+        return (teamNoRegex.matcher(widiNameString)).find();
     }
 
     public Boolean getWiFiEnabled() {
-        WifiManager wifi = (WifiManager)getSystemService(Context.WIFI_SERVICE);
+        WifiManager wifi = (WifiManager) getSystemService(Context.WIFI_SERVICE);
         return wifi.isWifiEnabled();
-    }
-
-    public void setWifiEnabled() {
-        WifiManager wifiManager = (WifiManager) this.getSystemService(Context.WIFI_SERVICE);
-        wifiManager.setWifiEnabled(false);
     }
 
     public Boolean getWiDiConnected() {
@@ -301,7 +294,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private void initReciever() {
         mDeviceNameReceiver = new DeviceNameReceiver();
         mDeviceNameReceiver.setOnDeviceNameReceivedListener(this);
-        filter = new IntentFilter(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION );
+        filter = new IntentFilter(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION);
     }
 
     private void startReceivingWidiInfo() {
@@ -309,10 +302,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     public Boolean validateAppsInstalled() {
-        if(!packageExists(ccApp)) return false;
-        if(phoneIsDS() == null) return false;
+        if (!packageExists(ccApp)) return false;
+        if (phoneIsDS() == null) return false;
 
-        if(phoneIsDS()) {
+        if (phoneIsDS()) {
             return packageExists(dsApp);
         } else {
             return packageExists(rcApp);
@@ -326,9 +319,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         int level = batteryStatus.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
         int scale = batteryStatus.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
 
-        float batteryPct = level / (float)scale;
+        float batteryPct = level / (float) scale;
 
         batteryLevel.setText(Math.round(batteryPct * 100f) + "%");
+        batteryLevel.setTextColor(batteryPct > 0.6 ? darkGreen : yellow);
     }
 
     private Runnable getRefreshRunnable() {
@@ -336,14 +330,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     public Boolean phoneIsDS() {
-        if(dsRegex.matcher(widiNameString).find())
+        if (dsRegex.matcher(widiNameString).find())
             return true;
-        if(rcRegex.matcher(widiNameString).find())
+        if (rcRegex.matcher(widiNameString).find())
             return false;
         return null;
     }
 
-    public boolean packageExists (String targetPackage){
+    public boolean packageExists(String targetPackage) {
         PackageManager pm = getPackageManager();
         try {
             pm.getPackageInfo(targetPackage, PackageManager.GET_META_DATA);
@@ -353,19 +347,31 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         return true;
     }
 
-    private TextView getTV (boolean installed) {
+    public PackageInfo getPackageInfo(String targetPackage) {
+        PackageManager pm = getPackageManager();
+        try {
+            return pm.getPackageInfo(targetPackage, PackageManager.GET_META_DATA);
+        } catch (PackageManager.NameNotFoundException e) {
+            return null;
+        }
+    }
+
+    private TextView getTV(boolean installed) {
         TextView tv = new TextView(this);
 
         tv.setText(installed ? "\u2713" : "X");
-        tv.setTextColor(installed ? Color.GREEN : Color.RED);
+        tv.setTextAppearance(this, android.R.style.TextAppearance_Large);
+        tv.setTextColor(installed ? darkGreen : Color.RED);
 
         return tv;
     }
 
-    private TextView getNotApplicableTV () {
+    private TextView getVersionTV(PackageInfo i) {
         TextView tv = new TextView(this);
 
-        tv.setText("N/A");
+        tv.setText(i.versionName);
+        tv.setTextAppearance(this, android.R.style.TextAppearance_Large);
+        tv.setTextColor(darkGreen);
 
         return tv;
     }
@@ -399,12 +405,16 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         if (id == ccid) {
             startStore(ccApp);
         }
+
+        if (id == whatsWrong.getId()) {
+            explainErrors();
+        }
     }
 
     private void deleteAllWifi() {
         WifiManager mainWifiObj = (WifiManager) getSystemService(Context.WIFI_SERVICE);
         List<WifiConfiguration> list = mainWifiObj.getConfiguredNetworks();
-        for( WifiConfiguration i : list ) {
+        for (WifiConfiguration i : list) {
             mainWifiObj.removeNetwork(i.networkId);
             mainWifiObj.saveConfiguration();
         }
@@ -414,11 +424,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         final WifiP2pManager wifiP2pManagerObj = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
         final Context context = getApplicationContext();
         final Channel channel = wifiP2pManagerObj.initialize(context, context.getMainLooper(), new ChannelListener() {
-                    @Override
-                    public void onChannelDisconnected() {
-                        Log.d("WIFIDIRECT", "Channel disconnected!");
-                    }
-                });
+            @Override
+            public void onChannelDisconnected() {
+                Log.d("WIFIDIRECT", "Channel disconnected!");
+            }
+        });
 
         try {
             Method[] methods = WifiP2pManager.class.getMethods();
@@ -430,7 +440,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     }
                 }
             }
-        } catch(Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }

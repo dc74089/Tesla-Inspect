@@ -11,4 +11,9 @@
         android:id="@+id/clear_widi"
         android:orderInCategory="101"
         app:showAsAction="never" />
+    <item
+        android:title="Disconnect from WiFi Direct"
+        android:id="@+id/disc_widi"
+        android:orderInCategory="102"
+        app:showAsAction="never" />
 </menu>
