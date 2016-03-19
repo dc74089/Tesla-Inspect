@@ -31,11 +31,6 @@ public class AutoFixer {
         public void run() {
             fixing = true;
 
-            if (errs.contains(R.string.airplaneError)) {
-                startSettingsForAirplaneMode();
-                return;
-            }
-
             if (errs.contains(R.string.bluetoothError)) {
                 disableBluetooth();
             }

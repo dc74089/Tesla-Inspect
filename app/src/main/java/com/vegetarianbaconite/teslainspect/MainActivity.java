@@ -5,6 +5,7 @@ import android.bluetooth.BluetoothAdapter;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
@@ -15,6 +16,7 @@ import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.net.wifi.p2p.WifiP2pDevice;
+import android.net.wifi.p2p.WifiP2pGroup;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.net.wifi.p2p.WifiP2pManager.Channel;
 import android.net.wifi.p2p.WifiP2pManager.ChannelListener;
@@ -127,7 +129,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
 
         if (id == R.id.clear_widi) {
-            deletePersistentInfo();
+            deleteRememberedWiDi();
             Toast.makeText(getApplicationContext(), "Deleted remembered WifiDirect Connections!",
                     Toast.LENGTH_SHORT).show();
 
@@ -135,7 +137,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
 
         if (id == R.id.disc_widi) {
-            //TODO: Disconnect WiDi
+            disconnectWiDi();
+            return true;
         }
 
         return super.onOptionsItemSelected(item);
@@ -154,7 +157,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     private Boolean validateInputs() {
-        phoneIsDS();
         if (!validateVersion()) return false;
         if (!getAirplaneMode()) return false;
         if (getBluetooth()) return false;
@@ -163,9 +165,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         if (!validateDeviceName()) return false;
 
         //TODO: Name mismatch validation
-        //TODO: Labview recognition
-        if (!packageExists(dsApp) && !packageExists(rcApp)) return false;
-
         return validateAppsInstalled();
     }
 
@@ -177,7 +176,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         bluetooth.setText(getBluetooth() ? "On" : "Off");
         wifiConnected.setText(getWifiConnected() ? "Yes" : "No");
         widiName.setText(widiNameString);
-        appsStatus.setText(validateAppsInstalled() ? "\u2713" : "X");
 
         widiConnected.setTextColor(getWiDiConnected() ? darkGreen : Color.RED);
         wifiEnabled.setTextColor(getWiFiEnabled() ? darkGreen : Color.RED);
@@ -188,7 +186,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         widiName.setTextColor(validateDeviceName() ? darkGreen : Color.RED);
 
         wifiConnected.setTextColor(!getWifiConnected() ? darkGreen : Color.RED);
-        appsStatus.setTextColor(validateAppsInstalled() ? darkGreen : Color.RED);
+
+        Boolean appsOkay = validateAppsInstalled();
+        appsStatus.setTextColor(appsOkay ? darkGreen : Color.RED);
+        appsStatus.setText(validateAppsInstalled() ? "\u2713" : "X");
 
         isRC.removeAllViews();
         isDS.removeAllViews();
@@ -203,24 +204,23 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         if (packageExists(rcApp)) {
             isRC.addView(getVersionTV(getPackageInfo(rcApp)));
         } else {
-            isRC.addView(getTV(false));
+            if (!appsOkay) isRC.addView(getTV(false, false));
+            else isRC.addView(getTV(false, true));
         }
 
         if (packageExists(dsApp)) {
             isDS.addView(getVersionTV(getPackageInfo(dsApp)));
         } else {
-            isDS.addView(buildButton(dsid));
+            if (!appsOkay) isDS.addView(buildButton(dsid));
+            else isDS.addView(getTV(false, true));
         }
 
         getBatteryInfo();
 
-        if (widiNameString.contains("\n") || widiNameString.contains("\r")) {
-            passFail.setText("FAIL - Invalid Name");
-            passFail.setTextColor(Color.RED);
-        } else {
-            passFail.setText(validateInputs() ? "Pass" : "Fail");
-            passFail.setTextColor(validateInputs() ? darkGreen : Color.RED);
-        }
+        Boolean passing = validateInputs();
+        passFail.setText(passing ? "Pass" : "Fail");
+        passFail.setTextColor(passing ? darkGreen : Color.RED);
+        whatsWrong.setVisibility(passing ? View.GONE : View.VISIBLE);
     }
 
     public void explainErrors() {
@@ -233,7 +233,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         if (getWifiConnected()) d.addError(R.string.wifiConnectedError);
         if (!validateDeviceName()) d.addError(R.string.widiNameError);
 
-        //TODO: Installed apps error
+        if (!packageExists(ccApp)) d.addError(R.string.missingChannelChanger);
+        if (packageExists(dsApp) && (packageExists(rcApp) || appInventorExists()))
+            d.addError(R.string.tooManyApps);
+
+        if ((packageExists(dsApp) || (packageExists(rcApp) || appInventorExists())) && !validateAppsInstalled())
+            d.addError(R.string.notEnoughApps);
 
         Dialog dlg = d.build();
         dlg.show();
@@ -303,13 +308,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     public Boolean validateAppsInstalled() {
         if (!packageExists(ccApp)) return false;
-        if (phoneIsDS() == null) return false;
 
-        if (phoneIsDS()) {
-            return packageExists(dsApp);
-        } else {
-            return packageExists(rcApp);
-        }
+        return (packageExists(dsApp) ^ (packageExists(rcApp) || appInventorExists()));
     }
 
     private void getBatteryInfo() {
@@ -329,22 +329,49 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         return refreshRunnable;
     }
 
-    public Boolean phoneIsDS() {
-        if (dsRegex.matcher(widiNameString).find())
-            return true;
-        if (rcRegex.matcher(widiNameString).find())
-            return false;
-        return null;
+    public Boolean packageExists(String targetPackage) {
+        return !packageCode(targetPackage).equals("na");
     }
 
-    public boolean packageExists(String targetPackage) {
+    public String packageCode(String targetPackage) {
         PackageManager pm = getPackageManager();
         try {
-            pm.getPackageInfo(targetPackage, PackageManager.GET_META_DATA);
+            return pm.getPackageInfo(targetPackage, PackageManager.GET_META_DATA).versionName;
+
         } catch (PackageManager.NameNotFoundException e) {
-            return false;
+            return "na";
         }
-        return true;
+    }
+
+    private Boolean appInventorExists() {
+        return !(findAppStudioApps().equals("na") || findAppStudioApps().equals("duplicate"));
+    }
+
+    // Returns
+    //   na - if none found
+    //   Duplicate if more than one appstudio app found
+    //   package name if only one app found
+    private String findAppStudioApps() {
+        String strval = "na";
+        String TAG = "MyActivity";
+
+        final PackageManager pm = getPackageManager();
+        final List<ApplicationInfo> installedApps = pm.getInstalledApplications(PackageManager.GET_META_DATA);
+
+        if (installedApps != null) {
+            for (ApplicationInfo app : installedApps) {
+                if (app.packageName.startsWith("appinventor.ai_")) {
+
+                    if (strval.equals("na")) {
+                        strval = getPackageInfo(app.packageName).versionName;
+                    } else {
+                        strval = "Duplicate";
+                    }
+                }
+            }
+        }
+
+        return strval;
     }
 
     public PackageInfo getPackageInfo(String targetPackage) {
@@ -356,12 +383,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
-    private TextView getTV(boolean installed) {
+    private TextView getTV(boolean installed, boolean passing) {
         TextView tv = new TextView(this);
 
         tv.setText(installed ? "\u2713" : "X");
         tv.setTextAppearance(this, android.R.style.TextAppearance_Large);
-        tv.setTextColor(installed ? darkGreen : Color.RED);
+        tv.setTextColor(passing ? darkGreen : Color.RED);
 
         return tv;
     }
@@ -420,7 +447,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
-    private void deletePersistentInfo() {
+    private void deleteRememberedWiDi() {
         final WifiP2pManager wifiP2pManagerObj = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
         final Context context = getApplicationContext();
         final Channel channel = wifiP2pManagerObj.initialize(context, context.getMainLooper(), new ChannelListener() {
@@ -442,6 +469,42 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
         } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+
+    public void disconnectWiDi() {
+        final WifiP2pManager wifiP2pManagerObj = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
+        final Context context = getApplicationContext();
+        final Channel mChannel = wifiP2pManagerObj.initialize(context, context.getMainLooper(), new ChannelListener() {
+            @Override
+            public void onChannelDisconnected() {
+                Log.d("WIFIDIRECT", "Channel disconnected!");
+            }
+        });
+
+        if (mChannel != null) {
+            wifiP2pManagerObj.requestGroupInfo(mChannel, new WifiP2pManager.GroupInfoListener() {
+                @Override
+                public void onGroupInfoAvailable(WifiP2pGroup group) {
+                    if (group != null && group.isGroupOwner()) {
+                        wifiP2pManagerObj.removeGroup(mChannel, new WifiP2pManager.ActionListener() {
+                            @Override
+                            public void onSuccess() {
+                                Log.d("WIFIDIRECT", "Current WifiDirect Connection Removed");
+                                Toast.makeText(MainActivity.this, "Successfully disconnected from WiFi Direct",
+                                        Toast.LENGTH_SHORT).show();
+                            }
+
+                            @Override
+                            public void onFailure(int reason) {
+                                Log.d("WIFIDIRECT", "Current WifiDirect Connection Removal Failed - " + reason);
+                                Toast.makeText(MainActivity.this, "There was an error disconnecting " +
+                                        "from WiFi Direct!", Toast.LENGTH_SHORT).show();
+                            }
+                        });
+                    }
+                }
+            });
         }
     }
 }
