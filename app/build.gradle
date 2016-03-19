@@ -8,8 +8,8 @@ android {
         applicationId "com.vegetarianbaconite.teslainspect"
         minSdkVersion 17
         targetSdkVersion 23
-        versionCode 7
-        versionName "2.0"
+        versionCode 8
+        versionName "3.0"
     }
     buildTypes {
         release {

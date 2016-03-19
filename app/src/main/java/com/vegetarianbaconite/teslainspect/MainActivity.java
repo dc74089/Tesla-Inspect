@@ -196,23 +196,26 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         isCC.removeAllViews();
 
         if (packageExists(ccApp)) {
-            isCC.addView(getVersionTV(getPackageInfo(ccApp)));
+            isCC.addView(getVersionTV(getPackageInfo(ccApp), true));
         } else {
             isCC.addView(buildButton(ccid));
         }
 
         if (packageExists(rcApp)) {
-            isRC.addView(getVersionTV(getPackageInfo(rcApp)));
+            isRC.addView(getVersionTV(getPackageInfo(rcApp), appsOkay));
         } else {
-            if (!appsOkay) isRC.addView(getTV(false, false));
-            else isRC.addView(getTV(false, true));
+            if (appInventorExists()) {
+                isRC.addView(getTV(true, appsOkay));
+            } else {
+                isRC.addView(getTV(false, appsOkay));
+            }
         }
 
         if (packageExists(dsApp)) {
-            isDS.addView(getVersionTV(getPackageInfo(dsApp)));
+            isDS.addView(getVersionTV(getPackageInfo(dsApp), appsOkay));
         } else {
             if (!appsOkay) isDS.addView(buildButton(dsid));
-            else isDS.addView(getTV(false, true));
+            else isDS.addView(getTV(false, appsOkay));
         }
 
         getBatteryInfo();
@@ -236,8 +239,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         if (!packageExists(ccApp)) d.addError(R.string.missingChannelChanger);
         if (packageExists(dsApp) && (packageExists(rcApp) || appInventorExists()))
             d.addError(R.string.tooManyApps);
-
-        if ((packageExists(dsApp) || (packageExists(rcApp) || appInventorExists())) && !validateAppsInstalled())
+        else if ((!packageExists(dsApp) || !(packageExists(rcApp) || appInventorExists())) && !validateAppsInstalled())
             d.addError(R.string.notEnoughApps);
 
         Dialog dlg = d.build();
@@ -337,7 +339,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         PackageManager pm = getPackageManager();
         try {
             return pm.getPackageInfo(targetPackage, PackageManager.GET_META_DATA).versionName;
-
         } catch (PackageManager.NameNotFoundException e) {
             return "na";
         }
@@ -353,7 +354,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     //   package name if only one app found
     private String findAppStudioApps() {
         String strval = "na";
-        String TAG = "MyActivity";
 
         final PackageManager pm = getPackageManager();
         final List<ApplicationInfo> installedApps = pm.getInstalledApplications(PackageManager.GET_META_DATA);
@@ -388,17 +388,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         tv.setText(installed ? "\u2713" : "X");
         tv.setTextAppearance(this, android.R.style.TextAppearance_Large);
-        tv.setTextColor(passing ? darkGreen : Color.RED);
+        tv.setTextColor(passing ? darkGreen : yellow);
 
         return tv;
     }
 
-    private TextView getVersionTV(PackageInfo i) {
+    private TextView getVersionTV(PackageInfo i, Boolean passing) {
         TextView tv = new TextView(this);
 
         tv.setText(i.versionName);
         tv.setTextAppearance(this, android.R.style.TextAppearance_Large);
-        tv.setTextColor(darkGreen);
+        tv.setTextColor(passing ? darkGreen : yellow);
 
         return tv;
     }

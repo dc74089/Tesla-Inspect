@@ -7,8 +7,8 @@
     <string name="wifiConnectedError">\u2022Disconnect from the WiFi network you\'re connected to\n</string>
     <string name="widiNameError">\u2022Make sure your WiFi Direct name is in the form ####-DS or ####-RC (for example, 9277-RC or 10650-DS) (This must be done manually)\n</string>
     <string name="notEnoughApps">\u2022Install all required apps. The Driver Station and Channel Changer can be installed from the Play Store. The Robot Controller app is installed from your programming computer. \n</string>
-    <string name="tooManyApps">\u2022You have both the Robot Controller and the Driver Station installed. Delete one from this phone.</string>
-    <string name="missingChannelChanger">\u2022You\'re missing the Channel Changer app. While this isn\'t required by FIRST, it\'s strongly reccomended to have. \n</string>
+    <string name="tooManyApps">\u2022You have both the Robot Controller and the Driver Station installed. Delete one from this phone. \n</string>
+    <string name="missingChannelChanger">\u2022You\'re missing the Channel Changer app. While this isn\'t required by FIRST, it\'s strongly recommended to have. \n</string>
     <string name="goodToGo">Everything looks good to us!\n</string>
     <string name="fixOffer">\nWe found errors, but we can try to fix some automatically. Would you like us to try?</string>
 </resources>
